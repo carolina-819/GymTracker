@@ -1,11 +1,27 @@
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View } from 'react-native';
+import {Appbar, Button, DarkTheme, DefaultTheme, Provider as PaperProvider, useTheme} from 'react-native-paper';
+import {createMaterialTopTabNavigator} from "@react-navigation/material-top-tabs";
 
+const Tab = createMaterialTopTabNavigator();
+
+function Braços() {
+  return (
+    <View><Text>Aqui veem se os exercicios de braços</Text></View>
+  )
+}
+function Pernas() {
+  return (
+    <View><Text>Aqui veem se os exercicios de pernas</Text></View>
+  )
+}
 export default function App() {
   return (
     <View style={styles.container}>
-      <Text>Open up App.js to start working on your app!</Text>
-      <StatusBar style="auto" />
+      <Tab.Navigator>
+      <Tab.Screen name="Braços" component={Braços} />
+      <Tab.Screen name="Pernas" component={Pernas} />
+    </Tab.Navigator>
     </View>
   );
 }
