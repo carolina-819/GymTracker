@@ -9,6 +9,7 @@ import { FormBuilder } from "react-native-paper-form-builder";
 import { useForm } from "react-hook-form";
 import { deleteDoc, collection, doc, addDoc, getFirestore, onSnapshot, query, where, orderBy, arrayRemove, updateDoc, clearIndexedDbPersistence, getDoc, getDocs, limitToLast } from "firebase/firestore";
 import './firebase'
+import { clickProps } from 'react-native-web/dist/cjs/modules/forwardedProps';
 
 
 function NewExercise(props) {
@@ -155,17 +156,17 @@ function NewExercise(props) {
 
 function EditExercise(props) {
 }
-function Bracos({ navigation }) {
-  const [arms, setArms] = useState([]);
+function AllExercises(props) {
+  const [exercise, setExercise] = useState([]);
   const [dialog, setDialog] = useState(false);
   const hide = () => setDialog(false);
   const show = () => setDialog(true);
 
   useEffect(() => {
     const db = getFirestore();
-    const _query = query(collection(db, "exercicios"), where('Categoria', '==', 'Braços'));
+    const _query = query(collection(db, "exercicios"), where('Categoria', '==', props.type));
     const unsubscribe = onSnapshot(_query, (data) => {
-      setArms(data.docs.map(doc => {
+      setExercise(data.docs.map(doc => {
 
         const data = doc.data();
         data.id = doc.id;
@@ -178,8 +179,8 @@ function Bracos({ navigation }) {
 
   return ( //cada exercicio mostra o nome, tu carregas e da drop down, quando da dropdown mostrar o botao de editar e apagar
     <ScrollView>
-      <Card.Title title="Os teus exercicios" />
-      {arms.map((braco) => (
+      <Card.Title title={props.type} />
+      {exercise.map((item) => (
         <View>
 
           <List.Item left={props =>
@@ -187,13 +188,13 @@ function Bracos({ navigation }) {
               icon="eye"
             />
           }
-            onPress={() => navigation.navigate('Single Exercise', { id: braco.id })}
-            title={braco.Nome}
-            key={braco.id}
+            onPress={() => props.navigation.navigate('Single Exercise', { id: item.id })}
+            title={item.Nome}
+            key={item.id}
             style={{ backgroundColor: 'grey' }} />
-          <List.Item title={"Sets: " + braco.Sets} />
-          <List.Item title={"Reps: " + braco.Reps} />
-          <List.Item title={"último peso: " + braco.Peso + braco.Medida} />
+          <List.Item title={"Sets: " + item.Sets} />
+          <List.Item title={"Reps: " + item.Reps} />
+          <List.Item title={"último peso: " + item.Peso + item.Medida} />
 
 
 
@@ -205,57 +206,12 @@ function Bracos({ navigation }) {
         icon="plus"
         label="Adicionar novo exercicio"
         uppercase
-        onPress={() => navigation.navigate('New Exercise', { type: "arms" })} //mudar para ir para o ecrã de novo carregador
+        onPress={() => props.navigation.navigate('New Exercise', { type: "arms" })} //mudar para ir para o ecrã de novo carregador
       />
     </ScrollView>
   );
 }
-function Pernas({ navigation }) {
-  const [legs, setLegs] = useState([]);
-  const [dialog, setDialog] = useState(false);
-  const hide = () => setDialog(false);
-  const show = () => setDialog(true);
 
-  useEffect(() => {
-    const db = getFirestore();
-    const _query = query(collection(db, "exercicios"), where('Categoria', '==', 'Pernas'));
-    const unsubscribe = onSnapshot(_query, (data) => {
-      setLegs(data.docs.map(doc => {
-
-        const data = doc.data();
-        data.id = doc.id;
-        console.log(doc.Nome);
-        return data;
-      }))
-    })
-
-    return unsubscribe;
-  }, []);
-
-  return ( //cada exercicio mostra o nome, tu carregas e da drop down, quando da dropdown mostrar o botao de editar e apagar
-    <View style={{ flex: 1 }}>
-      <Card.Title title="Os teus exercicios" />
-      {legs.map((perna) => (
-        <View>
-          <List.Item title={perna.Nome} key={perna.id} style={{ backgroundColor: 'transparent' }} />
-          <List.Item title={"Sets: " + perna.Sets} />
-          <List.Item title={"Reps: " + perna.Reps} />
-          <List.Item title={"último peso: " + perna.Peso + perna.Medida} />
-
-        </View>
-
-      ))}
-
-      <FAB
-        small
-        icon="plus"
-        label="Adicionar novo exercicio"
-        uppercase
-        onPress={() => navigation.navigate('New Exercise', { type: "legs" })} //mudar para ir para o ecrã de novo carregador
-      />
-    </View>
-  );
-}
 function SingleEx(props) {
   const { navigation, route } = props;
   const [ex, setEx] = useState({});
@@ -313,8 +269,8 @@ const Tab = createMaterialTopTabNavigator();
 function HomeScreen({ navigation }) {
   return (
     <Tab.Navigator>
-      <Tab.Screen name="Upper body day bby" component={Bracos} />
-      <Tab.Screen name="Never skip leg day" component={Pernas} />
+      <Tab.Screen name="Upper body day bby" children={() => <AllExercises type={'Braços'} navigation={navigation}/>}/>
+      <Tab.Screen name="Never skip leg day" children={() => <AllExercises type={'Pernas'} navigation={navigation}/>} />
     </Tab.Navigator>
   );
 }
