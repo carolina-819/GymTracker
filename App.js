@@ -4,9 +4,12 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import { Appbar, FAB, CardTitle, List, Card, Divider, IconButton, Dialog, Portal, Button, Provider as PaperProvider } from 'react-native-paper';
+import { Appbar, FAB, CardTitle, List, Card, Divider, IconButton, ActivityIndicator, Dialog, Portal, Button, Provider as PaperProvider } from 'react-native-paper';
 import { FormBuilder } from "react-native-paper-form-builder";
 import { useForm } from "react-hook-form";
+import {
+  LineChart,
+} from "react-native-chart-kit";
 import { deleteDoc, collection, doc, addDoc, getFirestore, onSnapshot, query, where, orderBy, arrayRemove, updateDoc, clearIndexedDbPersistence, getDoc, getDocs, limitToLast } from "firebase/firestore";
 import './firebase'
 import { clickProps } from 'react-native-web/dist/cjs/modules/forwardedProps';
@@ -155,6 +158,176 @@ function NewExercise(props) {
 }
 
 function EditExercise(props) {
+  const { navigation, route } = props;
+ 
+  const [pending, setPending] = React.useState(false);
+  const [ex, setEx] = React.useState(null);
+  const submit = async (data) => {
+
+    //Keyboard.dismiss();
+    setPending(true);
+    try {
+      const db = getFirestore();
+
+      if(ex.Peso != data.peso){
+        const currDate = new Date();
+        await addDoc(collection(db, "historico"), {
+          exID: props.route.params.id,
+          newWeight: Number(data.peso),
+          oldWeight: Number(ex.Peso),
+          timestamp: currDate,
+        });
+      }
+      
+      await updateDoc(doc(db, "exercicios", props.route.params.id), {
+        Nome: data.nome,
+        Notas: (data.notas ? data.notas : " "),
+        Peso: Number(data.peso),
+        Reps: Number(data.reps),
+        Sets: Number(data.sets),
+        Medida: data.medida
+      });
+
+
+      //setNotification("New charger added");
+      navigation.goBack();
+      console.log("done");
+
+    } catch (e) {
+      //setNotification(e.message)
+      console.log(e);
+    }
+
+    setPending(false);
+  };
+  useEffect(() => {
+    const db = getFirestore();
+    const _query = doc(db, "exercicios", props.route.params.id);
+    const docSnap = onSnapshot(_query, (doc) => {
+      const d = doc.data();
+      d.id = doc.id;
+      setEx(d);
+      
+    });
+    return docSnap;
+  }, []);
+
+  const { control, setFocus, handleSubmit } = useForm({
+    mode: 'onChange',
+  });
+
+  if (!ex) {
+    return <ActivityIndicator/>
+}
+  return (
+
+    <View style={{ margin: 20 }}>
+      <Text>{"Editar exercício: " + ex.Nome}</Text>
+      <FormBuilder
+        control={control}
+        setFocus={setFocus}
+        formConfigArray={[
+          {
+            name: 'nome',
+            type: 'text',
+            textInputProps: {
+              label: 'Nome',
+            },
+            rules: {
+              required: {
+                value: true,
+                message: 'Nome é obrigatório',
+              },
+            },
+            defaultValue: ex.Nome,
+          },
+          {
+            name: 'notas',
+            type: 'text',
+            textInputProps: {
+              label: 'Notas',
+            },
+          },
+          {
+            name: 'peso',
+            type: 'text',
+            textInputProps: {
+              label: 'Peso',
+            },
+            rules: {
+              required: {
+                value: true,
+                message: 'Peso é obrigatório',
+              },
+            },
+            defaultValue: ex.Peso.toString(),
+          },
+          {
+            name: 'medida',
+            type: 'select',
+            textInputProps: {
+              label: 'Medida',
+            },
+            rules: {
+              required: {
+                value: true,
+                message: 'Medida é pbrigatória',
+              },
+            },
+            defaultValue: ex.Medida.toString(),
+            options: [
+              {
+                id: 1,
+                value: 'Kg',
+                label: 'Kg',
+              },
+              {
+                id: 2,
+                value: 'Lbs',
+                label: 'Lbs',
+              },
+            ],
+          },
+          {
+            name: 'sets',
+            type: 'text',
+            textInputProps: {
+              label: 'Sets',
+            },
+            rules: {
+              required: {
+                value: true,
+                message: 'Sets é obrigatório',
+              },
+            },
+            defaultValue: ex.Sets.toString(),
+
+          },
+          {
+            name: 'reps',
+            type: 'text',
+            textInputProps: {
+              label: 'Reps',
+            },
+            rules: {
+              required: {
+                value: true,
+                message: 'Reps é obrigatório',
+              },
+            },
+            defaultValue: ex.Reps.toString(),
+
+          },
+
+        ]} />
+      <Button mode="contained" disabled={pending} onPress={handleSubmit(submit)}>
+        Guardar Alterações
+      </Button>
+      <Button mode="contained" onPress={navigation.goBack} color="#787878">
+        Cancelar
+      </Button>
+    </View>
+  );
 }
 function AllExercises(props) {
   const [exercise, setExercise] = useState([]);
@@ -219,13 +392,23 @@ function SingleEx(props) {
   useEffect(async () => {
     const db = getFirestore();
     const _query = doc(db, "exercicios", props.route.params.id);
-    const docSnap = await getDoc(_query);
-    if (docSnap.exists()) {
-      setEx(docSnap.data());
-    }
+    const docSnap = onSnapshot(_query, (doc) => {
+      const d = doc.data();
+      d.id = doc.id;
+      setEx(d);
+    });
 
     return docSnap;
   }, []);
+  const uwu = {
+    labels: ["January", "February", "March", "April", "May", "June"],
+    datasets: [
+      {
+        data: [20, 45, 28, 80, 99, 43],
+      }
+    ],
+    legend: ["Rainy Days"] // optional
+  };
   return (
     <View>
       <Card.Title title={ex.Nome} right={() => (
@@ -233,7 +416,7 @@ function SingleEx(props) {
         <IconButton
           icon="pencil"
           size={20}
-          onPress={() => console.log('Editar')}
+          onPress={() => props.navigation.navigate('Edit Exercise', { id: props.route.params.id })}
         />
         <IconButton
           icon="delete"
@@ -259,8 +442,29 @@ function SingleEx(props) {
         </View>
       )} />
       <List.Item title={"Notas"} description={ex.Notas} />
+      <LineChart
 
-
+  data={uwu}
+  width={220}
+  height={220}
+  chartConfig={{
+    backgroundColor: "#e26a00",
+    backgroundGradientFrom: "#fb8c00",
+    backgroundGradientTo: "#ffa726",
+    decimalPlaces: 2, // optional, defaults to 2dp
+    color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+    labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+    style: {
+      borderRadius: 16
+    },
+    propsForDots: {
+      r: "6",
+      strokeWidth: "2",
+      stroke: "#ffa726"
+    }
+  }}
+/>
+      
     </View>
   );
 }
@@ -287,6 +491,7 @@ export default function App() {
             <Stack.Screen name="Home" component={HomeScreen} />
             <Stack.Screen name="New Exercise" component={NewExercise} />
             <Stack.Screen name="Single Exercise" component={SingleEx} />
+            <Stack.Screen name="Edit Exercise" component={EditExercise} />
           </Stack.Navigator>
 
         </NavigationContainer>
