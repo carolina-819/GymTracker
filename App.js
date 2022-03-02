@@ -39,7 +39,6 @@ function NewExercise(props) {
       });
 
 
-      //setNotification("New charger added");
       navigation.goBack();
       console.log("done");
 
@@ -159,7 +158,7 @@ function NewExercise(props) {
 
 function EditExercise(props) {
   const { navigation, route } = props;
- 
+
   const [pending, setPending] = React.useState(false);
   const [ex, setEx] = React.useState(null);
   const submit = async (data) => {
@@ -169,7 +168,7 @@ function EditExercise(props) {
     try {
       const db = getFirestore();
 
-      if(ex.Peso != data.peso){
+      if (ex.Peso != data.peso) {
         const currDate = new Date();
         await addDoc(collection(db, "historico"), {
           exID: props.route.params.id,
@@ -178,7 +177,7 @@ function EditExercise(props) {
           timestamp: currDate,
         });
       }
-      
+
       await updateDoc(doc(db, "exercicios", props.route.params.id), {
         Nome: data.nome,
         Notas: (data.notas ? data.notas : " "),
@@ -207,7 +206,7 @@ function EditExercise(props) {
       const d = doc.data();
       d.id = doc.id;
       setEx(d);
-      
+
     });
     return docSnap;
   }, []);
@@ -217,8 +216,8 @@ function EditExercise(props) {
   });
 
   if (!ex) {
-    return <ActivityIndicator/>
-}
+    return <ActivityIndicator />
+  }
   return (
 
     <View style={{ margin: 20 }}>
@@ -388,15 +387,32 @@ function AllExercises(props) {
 function SingleEx(props) {
   const { navigation, route } = props;
   const [ex, setEx] = useState({});
+  const [del, setDel] = useState(false);
+  const [visible, setVisible] = React.useState(false);
+  const showDialog = () => setVisible(true);
+  const hideDialog = () => setVisible(false);
+
+  const deleteEx = async () => {
+    const db = getFirestore();
+    try {
+      await deleteDoc(doc(db, "exercicios", props.route.params.id));
+      //e preciso apagar o historico tambem
+    } catch (e) {
+      console.log("erro: " + e);
+    }
+    setVisible(false);
+    navigation.goBack();
+  }
 
   useEffect(async () => {
     const db = getFirestore();
     const _query = doc(db, "exercicios", props.route.params.id);
-    const docSnap = onSnapshot(_query, (doc) => {
-      const d = doc.data();
-      d.id = doc.id;
+    const docSnap = await getDoc(_query);
+    if (docSnap.exists()){
+      const d = docSnap.data();
+      d.id = docSnap.id;
       setEx(d);
-    });
+    }
 
     return docSnap;
   }, []);
@@ -412,19 +428,35 @@ function SingleEx(props) {
   return (
     <View>
       <Card.Title title={ex.Nome} right={() => (
-        <View style={{flexDirection: 'row'}}>
-        <IconButton
-          icon="pencil"
-          size={20}
-          onPress={() => props.navigation.navigate('Edit Exercise', { id: props.route.params.id })}
-        />
-        <IconButton
-          icon="delete"
-          size={20}
-          onPress={() => console.log('Apagar')}
-        />
+        <View style={{ flexDirection: 'row' }}>
+          <IconButton
+            icon="pencil"
+            size={20}
+            onPress={() => props.navigation.navigate('Edit Exercise', { id: props.route.params.id })}
+          />
+          <IconButton
+            icon="delete"
+            size={20}
+            onPress={showDialog}
+          />
         </View>
       )} />
+
+      <Portal>
+        <Dialog visible={visible} onDismiss={hideDialog}>
+          <Dialog.Title>Delete Charger</Dialog.Title>
+          <Dialog.Content>
+            <Text>Are you sure you want to delete this exercise? This action is irreversible.</Text>
+
+          </Dialog.Content>
+          <Dialog.Actions>
+            <View style={{ flexDirection: 'row' }}>
+              <Button onPress={() => deleteEx()}>Confirm</Button>
+              <Button onPress={hideDialog}>Cancel</Button>
+            </View>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
 
       <List.Item title={"Sets"} right={() => (
         <View>
@@ -444,28 +476,30 @@ function SingleEx(props) {
       <List.Item title={"Notas"} description={ex.Notas} />
       <LineChart
 
-  data={uwu}
-  width={220}
-  height={220}
-  chartConfig={{
-    backgroundColor: "#e26a00",
-    backgroundGradientFrom: "#fb8c00",
-    backgroundGradientTo: "#ffa726",
-    decimalPlaces: 2, // optional, defaults to 2dp
-    color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-    labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-    style: {
-      borderRadius: 16
-    },
-    propsForDots: {
-      r: "6",
-      strokeWidth: "2",
-      stroke: "#ffa726"
-    }
-  }}
-/>
-      
+        data={uwu}
+        width={220}
+        height={220}
+        chartConfig={{
+          backgroundColor: "#e26a00",
+          backgroundGradientFrom: "#fb8c00",
+          backgroundGradientTo: "#ffa726",
+          decimalPlaces: 2, // optional, defaults to 2dp
+          color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+          labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+          style: {
+            borderRadius: 16
+          },
+          propsForDots: {
+            r: "6",
+            strokeWidth: "2",
+            stroke: "#ffa726"
+          }
+        }}
+      />
+
     </View>
+
+
   );
 }
 const Tab = createMaterialTopTabNavigator();
@@ -473,8 +507,8 @@ const Tab = createMaterialTopTabNavigator();
 function HomeScreen({ navigation }) {
   return (
     <Tab.Navigator>
-      <Tab.Screen name="Upper body day bby" children={() => <AllExercises type={'Braços'} navigation={navigation}/>}/>
-      <Tab.Screen name="Never skip leg day" children={() => <AllExercises type={'Pernas'} navigation={navigation}/>} />
+      <Tab.Screen name="Upper body day bby" children={() => <AllExercises type={'Braços'} navigation={navigation} />} />
+      <Tab.Screen name="Never skip leg day" children={() => <AllExercises type={'Pernas'} navigation={navigation} />} />
     </Tab.Navigator>
   );
 }
